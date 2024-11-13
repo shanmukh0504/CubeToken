@@ -12,7 +12,7 @@ For more information and to interact with the Cube Token, visit our [official we
 
 The Cube Token (CBT) contract is deployed at the following address:
 
-- **Contract Address**: [0x1B7B44000281eA272d833C49B3fDA58cF9D7d8D3](https://sepolia.etherscan.io/address/0x1B7B44000281eA272d833C49B3fDA58cF9D7d8D3)
+- **Contract Address**: [0x98aaF9098b9052Ae49d632d5ce88B14ABe58843A](https://sepolia.etherscan.io/address/0x98aaF9098b9052Ae49d632d5ce88B14ABe58843A)
 
 Use this address to view the token on Etherscan, check transactions, and interact with the contract.
 
