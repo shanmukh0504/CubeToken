@@ -2,33 +2,11 @@
 pragma solidity ^0.8.26;
 
 abstract contract ERC20Interface {
-    function totalSupply() public view virtual returns (uint);
-    function balanceOf(address tokenOwner) public view virtual returns (uint balance);
-    function allowance(address tokenOwner, address spender) public view virtual returns (uint remaining);
-    function transfer(address to, uint tokens) public virtual returns (bool success);
-    function approve(address spender, uint tokens) public virtual returns (bool success);
-    function transferFrom(address from, address to, uint tokens) public virtual returns (bool success);
-
-    event Transfer(address indexed from, address indexed to, uint tokens);
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
-}
-
-abstract contract ApproveAndCallFallBack {
-    function receiveApproval(
-        address from,
-        uint256 tokens,
-        address token,
-        bytes memory data
-    ) public virtual;
-}
-
-contract CBToken is ERC20Interface {
     string public symbol;
     string public name;
     uint8 public decimals;
-    uint public _totalSupply;
+    uint public initialSupply;
     uint public maxSupply;
-
     address public owner;
     bool public paused;
 
@@ -48,82 +26,98 @@ contract CBToken is ERC20Interface {
     event Paused(address indexed account);
     event Unpaused(address indexed account);
 
+    event Transfer(address indexed from, address indexed to, uint tokens);
+    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
+}
+
+abstract contract ApproveAndCallFallBack {
+    function receiveApproval(
+        address from,
+        uint256 tokens,
+        address token,
+        bytes memory data
+    ) public virtual;
+}
+
+contract CubeToken is ERC20Interface {
     constructor() {
         symbol = "CBT";
         name = "Cube Token";
         decimals = 18;
-        maxSupply = 20_000_000 * (10 ** uint(decimals));
-        _totalSupply = 10_000_000 * (10 ** uint(decimals));
+        initialSupply = 5_000_000 * (10 ** uint(decimals));
+        maxSupply = 10_000_000 * (10 ** uint(decimals));
         owner = msg.sender;
-        balances[owner] = _totalSupply;
-        emit Transfer(address(0), owner, _totalSupply);
         paused = false;
+        balances[owner] = initialSupply;
+        emit Transfer(address(0), owner, initialSupply);
     }
 
-    function totalSupply() public view virtual override returns (uint) {
-        return _totalSupply;
+    function totalSupply() public view virtual returns (uint) {
+        return initialSupply;
     }
 
-    function balanceOf(address tokenOwner) public view virtual override returns (uint balance) {
+    function balanceOf(address tokenOwner) public view virtual returns (uint balance) {
         return balances[tokenOwner];
     }
 
-    function transfer(address to, uint tokens) public virtual override whenNotPaused returns (bool success) {
-        uint tokensToTransfer = tokens * (10 ** uint(decimals));
-        require(balances[msg.sender] >= tokensToTransfer, "Insufficient balance");
-        balances[msg.sender] -= tokensToTransfer;
-        balances[to] += tokensToTransfer;
-        emit Transfer(msg.sender, to, tokensToTransfer);
+    function transfer(address to, uint tokens) public virtual whenNotPaused returns (bool success) {
+        require(balances[msg.sender] >= tokens, "Insufficient balance");
+        balances[msg.sender] -= tokens;
+        balances[to] += tokens;
+        emit Transfer(msg.sender, to, tokens);
         return true;
     }
 
-    function approve(address spender, uint tokens) public virtual override whenNotPaused returns (bool success) {
-        uint tokensToApprove = tokens * (10 ** uint(decimals));
-        allowed[msg.sender][spender] = tokensToApprove;
-        emit Approval(msg.sender, spender, tokensToApprove);
+    function approve(address spender, uint tokens) public virtual whenNotPaused returns (bool success) {
+        allowed[msg.sender][spender] = tokens;
+        emit Approval(msg.sender, spender, tokens);
         return true;
     }
 
-    function transferFrom(address from, address to, uint tokens) public virtual override whenNotPaused returns (bool success) {
-        uint tokensToTransfer = tokens * (10 ** uint(decimals));
-        require(balances[from] >= tokensToTransfer, "Insufficient balance");
-        require(allowed[from][msg.sender] >= tokensToTransfer, "Allowance exceeded");
+    function transferFrom(address from, address to, uint tokens) public virtual whenNotPaused returns (bool success) {
+        require(balances[from] >= tokens, "Insufficient balance");
+        require(allowed[from][msg.sender] >= tokens, "Allowance exceeded");
 
-        balances[from] -= tokensToTransfer;
-        allowed[from][msg.sender] -= tokensToTransfer;
-        balances[to] += tokensToTransfer;
+        balances[from] -= tokens;
+        allowed[from][msg.sender] -= tokens;
+        balances[to] += tokens;
 
-        emit Transfer(from, to, tokensToTransfer);
+        emit Transfer(from, to, tokens);
         return true;
     }
 
-    function allowance(address tokenOwner, address spender) public view virtual override returns (uint remaining) {
-        return allowed[tokenOwner][spender] / (10 ** uint(decimals));
+    function allowance(address tokenOwner, address spender) public view virtual returns (uint remaining) {
+        return allowed[tokenOwner][spender];
     }
 
-    function approveAndCall(address spender, uint tokens, bytes memory data) public whenNotPaused returns (bool success) {
-        uint tokensToApprove = tokens * (10 ** uint(decimals));
-        allowed[msg.sender][spender] = tokensToApprove;
-        emit Approval(msg.sender, spender, tokensToApprove);
-        ApproveAndCallFallBack(spender).receiveApproval(msg.sender, tokensToApprove, address(this), data);
+    function increaseAllowance(address spender, uint256 addValue) public virtual whenNotPaused returns (bool success) {
+        require(allowed[msg.sender][spender] + addValue >= allowed[msg.sender][spender], "allowance overflow");
+        allowed[msg.sender][spender] += addValue;
+        emit Approval(msg.sender, spender, allowed[msg.sender][spender]);
+        return true;
+    }
+    
+    function decreaseAllowance(address spender, uint256 subValue) public virtual whenNotPaused returns (bool success) {
+        uint256 currAllowance = allowed[msg.sender][spender];
+        require(currAllowance >= subValue, "decreased allowance below zero");
+        allowed[msg.sender][spender] = currAllowance - subValue;
+        emit Approval(msg.sender, spender, allowed[msg.sender][spender]);
         return true;
     }
 
     function mint(uint tokens) public onlyOwner returns (bool success) {
-        uint tokensToMint = tokens * (10 ** uint(decimals));
-        require(_totalSupply + tokensToMint <= maxSupply, "Minting exceeds maximum supply");
-        _totalSupply += tokensToMint;
-        balances[owner] += tokensToMint;
-        emit Transfer(address(0), owner, tokensToMint);
+        require(initialSupply + tokens <= maxSupply, "Minting exceeds maximum supply");
+        initialSupply += tokens;
+        balances[owner] += tokens;
+        emit Transfer(address(0), owner, tokens);
         return true;
     }
 
     function burn(uint tokens) public returns (bool success) {
-        uint tokensToBurn = tokens * (10 ** uint(decimals));
-        require(balances[msg.sender] >= tokensToBurn, "Insufficient balance to burn");
-        balances[msg.sender] -= tokensToBurn;
-        _totalSupply -= tokensToBurn;
-        emit Transfer(msg.sender, address(0), tokensToBurn);
+        require(balances[msg.sender] >= tokens, "Insufficient balance to burn");
+        balances[msg.sender] -= tokens;
+        initialSupply -= tokens;
+        emit Transfer(msg.sender, address(0), tokens);
         return true;
     }
 

@@ -1,12 +1,10 @@
 const hre = require("hardhat");
 
 async function main() {
-    const CBToken = await hre.ethers.getContractFactory("CBToken");
-    const cbToken = await CBToken.deploy();
+    const CubeToken = await hre.ethers.getContractFactory("CubeToken");
+    const cbToken = await CubeToken.deploy();
 
-    await cbToken.waitForDeployment();
-
-    console.log("CBToken deployed to:", await cbToken.getAddress());
+    console.log("CubeToken deployed to:", await cbToken.getAddress());
 }
 
 main().catch((error) => {
