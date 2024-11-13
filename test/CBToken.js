@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("CBToken Contract", function () {
+describe("CubeToken Contract", function () {
     let cbToken;
     let owner;
     let addr1;
@@ -9,8 +9,8 @@ describe("CBToken Contract", function () {
 
     beforeEach(async function () {
         [owner, addr1, addr2] = await ethers.getSigners();
-        const CBToken = await ethers.getContractFactory("CBToken");
-        cbToken = await CBToken.deploy();
+        const CubeToken = await ethers.getContractFactory("CubeToken");
+        cbToken = await CubeToken.deploy();
     });
 
     describe("Deployment", function () {
